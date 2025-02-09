@@ -1,0 +1,17 @@
+numpy
+pandas
+torch
+scipy
+webrtcvad
+dtw
+dtaidistance
+sounddevice
+whisper -e numpy
+pandas
+torch
+scipy
+webrtcvad
+dtw
+dtaidistance
+sounddevice
+whisper
