@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Text Sync</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f5f5;
+            --text-color: #333;
+            --spacing: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: var(--spacing);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: calc(var(--spacing) * 2);
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: var(--spacing);
+            text-align: center;
+            font-size: 2.5em;
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            background: var(--secondary-color);
+            border: 2px dashed var(--primary-color);
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            font-size: 16px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #357abd;
+        }
+
+        .file-upload-wrapper {
+            position: relative;
+            padding: 20px;
+            text-align: center;
+            background: var(--secondary-color);
+            border: 2px dashed var(--primary-color);
+            border-radius: 5px;
+            margin-bottom: var(--spacing);
+        }
+
+        .file-upload-wrapper:hover {
+            background-color: #e8f0fe;
+        }
+
+        .upload-icon {
+            font-size: 24px;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        #file-name {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        #results {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--secondary-color);
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .loading {
+            display: none;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--secondary-color);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: var(--secondary-color);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: var(--primary-color);
+            transition: width 0.3s ease;
+        }
+
+        .loading-text {
+            margin-top: 10px;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .disabled {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .download-button {
+            background-color: #007bff;  /* Blue color for download */
+            color: white;
+            padding: 6px 10px;  /* Reduced padding for compactness */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;  /* Smaller font size */
+            font-weight: 600;
+            margin-left: auto;  /* Align to the right */
+            display: inline-flex;  /* Use inline-flex for compact layout */
+            align-items: center;
+            gap: 4px;  /* Reduced gap between icon and text */
+            transition: background-color 0.3s ease;
+            width: auto;  /* Allow the button to size based on content */
+        }
+
+        .download-button:hover {
+            background-color: #0056b3;  /* Darker blue on hover */
+        }
+
+        .download-icon {
+            font-size: 16px;  /* Adjusted icon size */
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;  /* Space between title and button */
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .instructions {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa; /* Light background for instructions */
+            border-radius: 5px;
+            border: 1px solid #dee2e6; /* Light border */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Audio Text Sync</h1>
+        <div class="instructions">
+            <h2>How to Use This Site</h2>
+            <p>Welcome to the Audio Text Sync tool! This application allows you to synchronize audio files with corresponding text transcripts. Follow the steps below to get started:</p>
+            <ol>
+                <li><strong>Upload Your Audio:</strong> Click on the area below or drag and drop your audio file (WAV or MP3 format) into the designated area.</li>
+                <li><strong>Enter Your Text:</strong> Paste the transcript of the audio into the text area provided. Make sure the text matches the audio for accurate synchronization.</li>
+                <li><strong>Sync:</strong> Click the "Sync Audio & Text" button to process your files. The application will analyze the audio and text, providing you with detailed timestamps on when the words are spoken.</li>
+            </ol>
+            <p>Once processing is complete, you will see the results displayed below, including the transcript and timing data. You can also download the timing data as a JSON file.</p>
+            <p>This tool is particularly useful for creating subtitles, analyzing speech patterns, or studying language pronunciation.</p>
+        </div>
+        <form id="uploadForm" action="/submit" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <div class="file-upload-wrapper">
+                    <div class="upload-icon">📁</div>
+                    <label for="audio">Drop your audio file here or click to browse</label>
+                    <input type="file" id="audio" name="audio" accept="audio/*" required>
+                    <div id="file-name"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="text">Enter your text:</label>
+                <textarea id="text" name="text" required placeholder="Paste your transcript here..."></textarea>
+            </div>
+            
+            <button type="submit">Sync Audio & Text</button>
+        </form>
+
+        <div class="loading" id="loadingIndicator">
+            <div class="loading-spinner"></div>
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+            <div class="loading-text" id="loadingText">Processing... (0%)</div>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Show selected file name
+        document.getElementById('audio').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name || 'No file selected';
+            document.getElementById('file-name').textContent = fileName;
+        });
+
+        // Function to download JSON data
+        function downloadJson(data, filename) {
+            console.log("Download function called with data:", data); // Debug log
+            const jsonStr = JSON.stringify(data, null, 2); // Pretty print JSON
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Handle form submission
+        const form = document.getElementById('uploadForm');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const progressBar = document.getElementById('progressBar');
+        const loadingText = document.getElementById('loadingText');
+        const resultsDiv = document.getElementById('results');
+
+        form.onsubmit = async function(e) {
+            e.preventDefault();  // Prevent default form submission
+            
+            // Validate audio file type
+            const audioFile = document.getElementById('audio').files[0];
+            const validExtensions = ['.wav', '.mp3'];
+            const fileExtension = audioFile.name.split('.').pop().toLowerCase();
+
+            if (!validExtensions.includes(`.${fileExtension}`)) {
+                alert('Please upload a valid audio file (WAV or MP3).');
+                return;
+            }
+
+            // Show loading indicator and disable form
+            loadingIndicator.style.display = 'block';
+            form.classList.add('disabled');
+            progressBar.style.width = '0%';
+            loadingText.textContent = 'Processing... (0%)';
+            
+            // Simulate progress
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += Math.random() * 2;
+                    progressBar.style.width = `${progress}%`;
+                    loadingText.textContent = `Processing... (${Math.round(progress)}%)`;
+                }
+            }, 200);
+
+            try {
+                const formData = new FormData(form);
+                console.log("Form data submitted:", formData); // Debug log
+                
+                const response = await fetch('/submit', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                console.log("Response status:", response.status); // Debug log
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log("Result received:", result); // Debug log
+                
+                // Clear progress interval and show 100%
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                loadingText.textContent = 'Processing... (100%)';
+                
+                // Hide loading indicator and enable form after a short delay
+                setTimeout(() => {
+                    loadingIndicator.style.display = 'none';
+                    form.classList.remove('disabled');
+                }, 500);
+
+                if (result.error) {
+                    alert('Error: ' + result.error);
+                    return;
+                }
+                
+                // Update the results display with a compact download button
+                resultsDiv.innerHTML = `
+                    <div class="results-header">
+                        <h2>Results</h2>
+                        <button class="download-button" id="download-button">
+                            <span class="download-icon">⬇️</span>
+                            Download
+                        </button>
+                    </div>
+                    <p><strong>Processing Time:</strong> ${result.processing_time} seconds</p>
+                    <h3>Transcript:</h3>
+                    <p>${result.transcript}</p>
+                    <h3>Timing Data:</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Word</th>
+                                <th>Begin Time</th>
+                                <th>End Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${result.timing_data.map(item => `
+                                <tr>
+                                    <td>${item.word}</td>
+                                    <td>${item.begin.toFixed(2)}s</td>
+                                    <td>${item.end.toFixed(2)}s</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+                // Add event listener for the download button after the results are rendered
+                document.getElementById('download-button').addEventListener('click', () => {
+                    console.log("Download button clicked"); // Debug log
+                    downloadJson(result.timing_data, 'timing_data.json');
+                });
+                
+                // Scroll to results
+                resultsDiv.scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                // Clear progress interval and hide loading indicator on error
+                clearInterval(progressInterval);
+                loadingIndicator.style.display = 'none';
+                form.classList.remove('disabled');
+                
+                console.error('Error:', error);
+                alert('An error occurred while processing the request');
+            }
+            
+            return false;  // Prevent form submission
+        };
+    </script>
+</body>
+</html> 

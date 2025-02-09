@@ -16,6 +16,7 @@ import webrtcvad as vad
 from scipy.signal import resample
 
 import whisper
+import librosa  # or pydub, depending on your implementation
 
 
 AUDIO_SAMPLES_PER_TOKEN = whisper.audio.HOP_LENGTH * 2
@@ -285,65 +286,87 @@ class RealTimeTranscriber:
             print(f"Processing chunk {i+1}/{num_chunks + 1}, Length: {len(audio_chunk)}")
             self.process_audio_chunk(audio_chunk)
 
-# record_audio(16000, 180, "buffers/buffer_long_pause.wav")
-
-if __name__ == "__main__":
-    # Define parameters for RealTimeTranscriber
-    # load in the book
-    book = """In the heart of the mysterious Whispering Woods, young Ella and her trusty dog, Max, were on an adventure. The forest was alive with the soft rustling of leaves, whispering secrets only the trees knew, while an eerie wind howled through the ancient branches. 
-
-As they ventured deeper, the forest seemed to close in around them, the shadows lengthening. A distant wolf's mournful howl sent shivers down Ella's spine, but Max stayed bravely by her side, his ears perked.
-
-Suddenly, the soft flutter of bat wings echoed above them, followed by the sinister rustle of leaves in a nearby bush. Ella clutched Max's fur, her heart pounding like a drum.
-
-They stumbled upon an ancient, creaky wooden cabin, its door ominously swinging open with a chilling creak. Inside, the air was thick with the mysterious chanting of an ancient spell.
-
-As they entered, the room was filled with unearthly whispers carried on the breeze. The sound of chains rattling ominously added to the feeling of dread. 
-
-Max whimpered slightly, but Ella reassured him with a soft pat on his head. The spectral bell tolling in the distance seemed to mark the beginning of something momentous.
-
-Suddenly, the bubbling of a witch's cauldron drew their attention, the room filled with an eerie glow. Ella could feel the magic in the air, tingling against her skin, and the ghostly footsteps softly tread behind them.
-
-Bravely, Ella reached for the mysterious book on the dusty shelf, its pages rustling with a life of their own. The room seemed to hold its breath, the soft tapping of ghostly fingers on the window echoing in the silence.
-
-With a deep breath, Ella whispered an ancient incantation she'd read in a story. The air shimmered, the whispers growing louder, yet more harmonious, as if the forest itself was singing along.
-
-Suddenly, the room was filled with a warm, golden light, and the forest outside grew serene, the eerie sounds fading into the distance. Ella and Max exchanged a look of relief; they had broken the spell. 
-
-With newfound courage, they stepped back into the now peaceful woods, the distant wolf's howl now a friendly farewell. As they made their way home, the soft rustling of leaves sang them a lullaby of adventure and bravery."""
-
-    line_offset = 0
-    chunk_duration = 10  # Duration for each chunk in seconds
-    audio_window = 10  # Window for audio processing in seconds
-    audio_file = "./whispering_woods.wav"  # Path to the audio file to process
-    target_sample_rate = 16000  # Target sample rate for processing
-
+def load_audio_file(file_obj, target_sample_rate=16000):
+    """
+    Load and preprocess audio data from a file object.
+    
+    Args:
+        file_obj: File object or path to audio file
+        target_sample_rate (int): Desired sample rate for processing
+    
+    Returns:
+        numpy.ndarray: Preprocessed audio data
+    """
     # Load audio from file
-    original_sample_rate, audio_data = wavfile.read(audio_file)
-     
+    audio_data, original_sample_rate = librosa.load(file_obj, sr=target_sample_rate)  # librosa can handle both WAV and MP3
+
     # Resample if the sample rate doesn't match the target
     if original_sample_rate != target_sample_rate:
-        num_samples = int(len(audio_data) * target_sample_rate / original_sample_rate)
-        audio_data = resample(audio_data, num_samples)
-        audio_data = audio_data.astype(np.int16)  # convert back to int16 after resampling
+        audio_data = librosa.resample(audio_data, orig_sr=original_sample_rate, target_sr=target_sample_rate)
 
-    # Normalize audio data
-    audio_data = audio_data.astype(np.float32) / 32767.0
+    return audio_data.astype(np.float32)  # Ensure the audio data is in float32 format
 
-    # Instantiate RealTimeTranscriber
+def process_audio_with_text(audio_data=None, audio_file=None, text="", chunk_duration=10, audio_window=10):
+    """
+    Process audio data with corresponding text for synchronization.
+    
+    Args:
+        audio_data: Optional preprocessed audio data
+        audio_file: Optional path to audio file (used if audio_data not provided)
+        text (str): Text to synchronize with the audio
+        chunk_duration (int): Duration for each chunk in seconds
+        audio_window (int): Window for audio processing in seconds
+    
+    Returns:
+        tuple: (transcript, processing_time, DataFrame with timing information)
+    """
+    # Load and preprocess audio if not already provided
+    if audio_data is None and audio_file is not None:
+        audio_data = load_audio_file(audio_file)
+    elif audio_data is None:
+        raise ValueError("Either audio_data or audio_file must be provided")
+    
+    # Initialize transcriber
     transcriber = RealTimeTranscriber(
-        book=book,
-        line_offset=line_offset,
+        book=text,
+        line_offset=0,
         chunk_duration=chunk_duration,
         audio_window=audio_window
     )
-
-    # Process the audio file
+    
+    # Process audio and measure time
     start_time = time.time()
     transcriber.process_audio_file(audio_data)
-    end_time = time.time()
+    processing_time = time.time() - start_time
+    
+    return transcriber.get_transcript(), processing_time, transcriber.get_df()
 
-    transcriber.print_df(audio_file.replace(".wav", ".csv"))
-    print(transcriber.get_transcript())
-    print(f"Time to process audio: {end_time - start_time} seconds")
+# record_audio(16000, 180, "buffers/buffer_long_pause.wav")
+
+if __name__ == "__main__":
+    # Example text
+    sample_text = """In the heart of the mysterious Whispering Woods, young Ella and her trusty dog, Max, were on an adventure. The forest was alive with the soft rustling of leaves, whispering secrets only the trees knew, while an eerie wind howled through the ancient branches. 
+    As they ventured deeper, the forest seemed to close in around them, the shadows lengthening. A distant wolf's mournful howl sent shivers down Ella's spine, but Max stayed bravely by her side, his ears perked.
+    Suddenly, the soft flutter of bat wings echoed above them, followed by the sinister rustle of leaves in a nearby bush. Ella clutched Max's fur, her heart pounding like a drum.
+    They stumbled upon an ancient, creaky wooden cabin, its door ominously swinging open with a chilling creak. Inside, the air was thick with the mysterious chanting of an ancient spell.
+    As they entered, the room was filled with unearthly whispers carried on the breeze. The sound of chains rattling ominously added to the feeling of dread. 
+    Max whimpered slightly, but Ella reassured him with a soft pat on his head. The spectral bell tolling in the distance seemed to mark the beginning of something momentous.
+    Suddenly, the bubbling of a witch's cauldron drew their attention, the room filled with an eerie glow. Ella could feel the magic in the air, tingling against her skin, and the ghostly footsteps softly tread behind them.
+    Bravely, Ella reached for the mysterious book on the dusty shelf, its pages rustling with a life of their own. The room seemed to hold its breath, the soft tapping of ghostly fingers on the window echoing in the silence.
+    With a deep breath, Ella whispered an ancient incantation she'd read in a story. The air shimmered, the whispers growing louder, yet more harmonious, as if the forest itself was singing along.
+    Suddenly, the room was filled with a warm, golden light, and the forest outside grew serene, the eerie sounds fading into the distance. Ella and Max exchanged a look of relief; they had broken the spell. 
+    With newfound courage, they stepped back into the now peaceful woods, the distant wolf's howl now a friendly farewell. As they made their way home, the soft rustling of leaves sang them a lullaby of adventure and bravery."""
+    
+    # Process audio file
+    audio_file = "./whispering_woods.mp3"
+    transcript, processing_time, timing_df = process_audio_with_text(
+        audio_file=audio_file,
+        text=sample_text
+    )
+    
+    # Print results
+    print(f"\nTranscript:\n{transcript}")
+    print(f"\nProcessing time: {processing_time:.2f} seconds")
+    print("\nTiming information:")
+    print(timing_df)
 
