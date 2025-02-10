@@ -17,6 +17,7 @@ from scipy.signal import resample
 
 import whisper
 import librosa  # or pydub, depending on your implementation
+from pydub import AudioSegment
 
 
 AUDIO_SAMPLES_PER_TOKEN = whisper.audio.HOP_LENGTH * 2
@@ -47,7 +48,7 @@ class RealTimeTranscriber:
                  line_offset,
                  chunk_duration=1,
                  language="English",
-                 model_name="base",
+                 model_name="tiny",
                  token_window=1000,
                  audio_window=30,
                  vad_level=-1,
@@ -297,14 +298,20 @@ def load_audio_file(file_obj, target_sample_rate=16000):
     Returns:
         numpy.ndarray: Preprocessed audio data
     """
-    # Load audio from file
-    audio_data, original_sample_rate = librosa.load(file_obj, sr=target_sample_rate)  # librosa can handle both WAV and MP3
+    # Load audio using pydub
+    audio = AudioSegment.from_file(file_obj)  # Automatically detects format (WAV, MP3, etc.)
+    
+    # Resample if necessary
+    if audio.frame_rate != target_sample_rate:
+        audio = audio.set_frame_rate(target_sample_rate)
 
-    # Resample if the sample rate doesn't match the target
-    if original_sample_rate != target_sample_rate:
-        audio_data = librosa.resample(audio_data, orig_sr=original_sample_rate, target_sr=target_sample_rate)
+    # Convert to numpy array
+    audio_data = np.array(audio.get_array_of_samples(), dtype=np.float32)
 
-    return audio_data.astype(np.float32)  # Ensure the audio data is in float32 format
+    # Normalize audio data to range [-1.0, 1.0]
+    audio_data /= np.max(np.abs(audio_data))  # Normalize to [-1, 1]
+
+    return audio_data
 
 def process_audio_with_text(audio_data=None, audio_file=None, text="", chunk_duration=10, audio_window=10):
     """
@@ -345,17 +352,15 @@ def process_audio_with_text(audio_data=None, audio_file=None, text="", chunk_dur
 
 if __name__ == "__main__":
     # Example text
-    sample_text = """In the heart of the mysterious Whispering Woods, young Ella and her trusty dog, Max, were on an adventure. The forest was alive with the soft rustling of leaves, whispering secrets only the trees knew, while an eerie wind howled through the ancient branches. 
-    As they ventured deeper, the forest seemed to close in around them, the shadows lengthening. A distant wolf's mournful howl sent shivers down Ella's spine, but Max stayed bravely by her side, his ears perked.
-    Suddenly, the soft flutter of bat wings echoed above them, followed by the sinister rustle of leaves in a nearby bush. Ella clutched Max's fur, her heart pounding like a drum.
-    They stumbled upon an ancient, creaky wooden cabin, its door ominously swinging open with a chilling creak. Inside, the air was thick with the mysterious chanting of an ancient spell.
-    As they entered, the room was filled with unearthly whispers carried on the breeze. The sound of chains rattling ominously added to the feeling of dread. 
-    Max whimpered slightly, but Ella reassured him with a soft pat on his head. The spectral bell tolling in the distance seemed to mark the beginning of something momentous.
-    Suddenly, the bubbling of a witch's cauldron drew their attention, the room filled with an eerie glow. Ella could feel the magic in the air, tingling against her skin, and the ghostly footsteps softly tread behind them.
-    Bravely, Ella reached for the mysterious book on the dusty shelf, its pages rustling with a life of their own. The room seemed to hold its breath, the soft tapping of ghostly fingers on the window echoing in the silence.
-    With a deep breath, Ella whispered an ancient incantation she'd read in a story. The air shimmered, the whispers growing louder, yet more harmonious, as if the forest itself was singing along.
-    Suddenly, the room was filled with a warm, golden light, and the forest outside grew serene, the eerie sounds fading into the distance. Ella and Max exchanged a look of relief; they had broken the spell. 
-    With newfound courage, they stepped back into the now peaceful woods, the distant wolf's howl now a friendly farewell. As they made their way home, the soft rustling of leaves sang them a lullaby of adventure and bravery."""
+    sample_text = """In the heart of Whispering Woods, young Ella and her dog, Max, ventured into the unknown. The trees whispered secrets, and the eerie wind howled through ancient branches.
+
+As they wandered deeper, shadows grew longer, and a distant wolf's howl sent shivers down Ella's spine. Max stayed close, ears perked. Suddenly, bat wings fluttered overhead, and leaves rustled nearby. Ella clutched Max's fur, her heart racing.
+
+They stumbled upon an ancient wooden cabin with its door swinging open. Inside, the air pulsed with strange whispers and the rattle of chains. Max whimpered, but Ella patted him reassuringly. A cauldron bubbled, casting an eerie glow across the room.
+
+Drawn to a dusty book on the shelf, Ella reached for it. The pages seemed to breathe, and ghostly fingers tapped on the window. Whispering an ancient incantation, Ella felt the air shimmer as the forest joined in harmony.
+
+A warm, golden light filled the room. The eerie sounds faded, and peace returned. Ella and Max stepped into the now-calm woods, the wolf's howl a friendly farewell. They walked home as the forest sang softly, a lullaby of bravery and adventure."""
     
     # Process audio file
     audio_file = "./whispering_woods.mp3"
