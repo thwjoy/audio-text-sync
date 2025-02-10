@@ -11,7 +11,7 @@ import webrtcvad
 from dtw import dtw
 from dtaidistance.dtw import warping_paths
 from scipy.ndimage import median_filter
-import sounddevice as sd
+# import sounddevice as sd
 import webrtcvad as vad
 from scipy.signal import resample
 
@@ -26,19 +26,19 @@ def get_transcript_from_book(book, line_start, line_end):
     return "\n".join(book.split("\n")[line_start:line_end]) + "\n"
 
 # Function to record and save audio
-def record_audio(sampling_rate, duration, output_file):
-    print("Recording started...")
-    # Record audio
-    audio_data = sd.rec(int(duration * sampling_rate), samplerate=sampling_rate, channels=1, dtype='float32')
-    sd.wait()  # Wait until the recording is finished
-    print("Recording finished.")
+# def record_audio(sampling_rate, duration, output_file):
+#     print("Recording started...")
+#     # Record audio
+#     audio_data = sd.rec(int(duration * sampling_rate), samplerate=sampling_rate, channels=1, dtype='float32')
+#     sd.wait()  # Wait until the recording is finished
+#     print("Recording finished.")
     
-    # Normalize to int16 format for saving as WAV
-    audio_data_int16 = np.int16(audio_data * 32767)
+#     # Normalize to int16 format for saving as WAV
+#     audio_data_int16 = np.int16(audio_data * 32767)
     
-    # Save as WAV file
-    wavfile.write(output_file, sampling_rate, audio_data_int16)
-    print(f"Audio saved as {output_file}")
+#     # Save as WAV file
+#     wavfile.write(output_file, sampling_rate, audio_data_int16)
+#     print(f"Audio saved as {output_file}")
 
 
 class RealTimeTranscriber:
