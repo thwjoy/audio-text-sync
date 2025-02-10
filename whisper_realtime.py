@@ -5,18 +5,18 @@ import pandas as pd
 import torch
 import string
 
-from scipy.io import wavfile
+# from scipy.io import wavfile
 
 import webrtcvad
 from dtw import dtw
 from dtaidistance.dtw import warping_paths
 from scipy.ndimage import median_filter
 # import sounddevice as sd
-import webrtcvad as vad
-from scipy.signal import resample
+# import webrtcvad as vad
+# from scipy.signal import resample
 
 import whisper
-import librosa  # or pydub, depending on your implementation
+# import librosa  # or pydub, depending on your implementation
 from pydub import AudioSegment
 
 
